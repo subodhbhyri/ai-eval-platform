@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ai-eval-dashboard-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # set manually in Render dashboard (Supabase URL)
+      - key: REDIS_URL
+        sync: false          # set manually (Render Redis or Upstash)
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: KAFKA_ENABLED
+        value: "false"
+      - key: DEBUG
+        value: "false"
+      - key: MAX_CONCURRENT_EVALUATIONS
+        value: "3"
+    healthCheckPath: /health
+    autoDeploy: true
