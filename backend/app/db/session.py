@@ -4,12 +4,18 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+# Supabase requires SSL — add connect_args for asyncpg
+connect_args = {}
+if "supabase" in settings.database_url or "pooler.supabase" in settings.database_url:
+    connect_args = {"ssl": "require"}
+
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
+    connect_args=connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(
