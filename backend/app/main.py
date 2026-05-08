@@ -37,6 +37,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:3000",
         "https://ai-eval-platform-yswy.onrender.com",
+        "https://ai-eval-platform-seven.vercel.app",
     ],
     allow_origin_regex=r"https://ai-eval-platform.*\.vercel\.app",
     allow_credentials=True,
