@@ -14,6 +14,13 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    from app.core.config import get_settings as _gs
+    import re as _re
+    _url = _gs().database_url
+    _safe = _re.sub(r':([^:@]+)@', ':***@', _url)
+    print(f"[STARTUP] DATABASE_URL = {_safe}", flush=True)
+
+    # Startup
     await create_tables()
     yield
     # Shutdown
@@ -32,7 +39,11 @@ app = FastAPI(
 # CORS — allow React dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://your-app.vercel.app",  # add this once you know the URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
