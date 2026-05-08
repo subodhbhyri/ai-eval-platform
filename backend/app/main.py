@@ -36,13 +36,13 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://ai-eval-platform-5x4m89zoi-subodhisawakes-projects.vercel.app",  # add this once you know the URL
+        "https://ai-eval-platform-yswy.onrender.com",
     ],
+    allow_origin_regex=r"https://ai-eval-platform.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # Prometheus metrics at /metrics
 Instrumentator().instrument(app).expose(app)
 
