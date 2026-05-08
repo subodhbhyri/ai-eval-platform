@@ -13,12 +13,6 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    from app.core.config import get_settings as _gs
-    import re as _re
-    _url = _gs().database_url
-    _safe = _re.sub(r':([^:@]+)@', ':***@', _url)
-    print(f"[STARTUP] DATABASE_URL = {_safe}", flush=True)
 
     # Startup
     await create_tables()
@@ -42,7 +36,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://ai-eval-platform-seven.vercel.app/",  # add this once you know the URL
+        "https://ai-eval-platform-5x4m89zoi-subodhisawakes-projects.vercel.app",  # add this once you know the URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
