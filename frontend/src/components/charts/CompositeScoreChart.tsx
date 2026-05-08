@@ -12,7 +12,7 @@ interface Props {
 
 export function CompositeScoreChart({ results }: Props) {
   const data = results.map((r) => ({
-    model: r.model_name.split('-').slice(0, 3).join('-'), // truncate long names
+    model: r.model_name.split('-').slice(0, 3).join('-'),
     score: r.metrics.composite_score != null ? Math.round(r.metrics.composite_score * 100) : 0,
     latency: r.latency_ms ?? 0,
   }))
@@ -37,7 +37,7 @@ export function CompositeScoreChart({ results }: Props) {
         <Tooltip
           contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontFamily: 'DM Mono, monospace' }}
           labelStyle={{ color: '#e2e8f0' }}
-          formatter={(val: number) => [`${val}%`, 'Composite Score']}
+          formatter={(val) => [`${val ?? 0}%`, 'Composite Score'] as [string, string]}
           cursor={{ fill: '#1e293b' }}
         />
         <Bar dataKey="score" radius={[4, 4, 0, 0]}>

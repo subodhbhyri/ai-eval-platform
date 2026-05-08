@@ -40,7 +40,7 @@ export function MetricsRadarChart({ results }: Props) {
         <Tooltip
           contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontFamily: 'DM Mono, monospace' }}
           labelStyle={{ color: '#e2e8f0' }}
-          formatter={(val: number) => [`${val}%`]}
+          formatter={(val) => [`${val ?? 0}%`] as [string]}
         />
         <Legend
           wrapperStyle={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#94a3b8' }}
