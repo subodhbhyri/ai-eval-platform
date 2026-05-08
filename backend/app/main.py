@@ -42,7 +42,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://your-app.vercel.app",  # add this once you know the URL
+        "https://ai-eval-platform-seven.vercel.app/",  # add this once you know the URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
