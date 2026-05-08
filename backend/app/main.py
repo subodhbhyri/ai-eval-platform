@@ -33,14 +33,8 @@ app = FastAPI(
 # CORS — allow React dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://ai-eval-platform-yswy.onrender.com",
-        "https://ai-eval-platform-seven.vercel.app",
-    ],
-    allow_origin_regex=r"https://ai-eval-platform.*\.vercel\.app",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
