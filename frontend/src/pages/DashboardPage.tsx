@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useEvaluationRuns } from '../hooks/useEvaluations'
+import { useEvalStream, type EvalEvent } from '../hooks/useEvalStream'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { SubmitEvalForm } from '../components/ui/SubmitEvalForm'
 import { formatDistanceToNow } from 'date-fns'
@@ -8,15 +9,56 @@ interface Props {
   onSelectRun: (id: string) => void
 }
 
+const DOT_COLOR: Record<string, string> = {
+  'run.started': 'bg-blue-400',
+  'run.completed': 'bg-emerald-400',
+  'run.failed': 'bg-red-400',
+  'model.scored': 'bg-yellow-400',
+}
+
+function eventLabel(event: EvalEvent, runName: string | undefined): string {
+  const name = runName ? `"${runName}"` : event.run_id.slice(0, 8)
+  switch (event.event_type) {
+    case 'run.started':
+      return `${name} started (${event.models?.length ?? 0} models, ${event.dataset_size ?? 0} items)`
+    case 'run.completed': {
+      const scores = event.composite_scores
+        ? Object.entries(event.composite_scores)
+            .map(([m, s]) => `${m.split('-')[0]}:${s?.toFixed(2) ?? '—'}`)
+            .join(' ')
+        : ''
+      return `${name} completed${scores ? '  ' + scores : ''}`
+    }
+    case 'run.failed':
+      return `${name} failed — ${event.error ?? 'unknown error'}`
+    case 'model.scored':
+      return `${event.model ?? '?'} scored ${event.composite_score?.toFixed(2) ?? '—'} on ${name}`
+    default:
+      return `${event.event_type} on ${name}`
+  }
+}
+
 export function DashboardPage({ onSelectRun }: Props) {
   const { runs, loading, error, refetch } = useEvaluationRuns(5000)
   const [showForm, setShowForm] = useState(false)
+  const events = useEvalStream()
+  const feedRef = useRef<HTMLDivElement>(null)
 
   const handleSubmitted = (id: string) => {
     setShowForm(false)
     refetch()
     onSelectRun(id)
   }
+
+  // Auto-scroll live feed to latest event
+  useEffect(() => {
+    if (feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight
+    }
+  }, [events])
+
+  const runNameById = Object.fromEntries(runs.map((r) => [r.id, r.name]))
+  const visibleEvents = events.slice(-10)
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,6 +150,46 @@ export function DashboardPage({ onSelectRun }: Props) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Live events feed */}
+      <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+          <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Live events</span>
+          <span className="flex items-center gap-1.5 text-xs font-mono text-slate-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+            streaming
+          </span>
+        </div>
+
+        <div
+          ref={feedRef}
+          className="max-h-52 overflow-y-auto px-4 py-2 flex flex-col gap-1 scroll-smooth"
+        >
+          {visibleEvents.length === 0 ? (
+            <p className="text-xs font-mono text-slate-700 py-4 text-center">
+              Waiting for events…
+            </p>
+          ) : (
+            visibleEvents.map((ev, i) => (
+              <div key={i} className="flex items-center gap-2.5 py-1">
+                <span
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT_COLOR[ev.event_type] ?? 'bg-slate-500'}`}
+                />
+                <span className="text-xs font-mono text-slate-300 flex-1 truncate">
+                  {eventLabel(ev, runNameById[ev.run_id])}
+                </span>
+                <span className="text-xs font-mono text-slate-600 flex-shrink-0 tabular-nums">
+                  {new Date(ev.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )

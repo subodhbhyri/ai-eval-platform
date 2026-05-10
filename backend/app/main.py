@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.db.session import create_tables
 from app.core.cache import close_redis
 from app.api.routes import evaluations
+from app.services import kafka_consumer
 
 settings = get_settings()
 
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI):
 
     # Startup
     await create_tables()
+    await kafka_consumer.start_consumer()
     yield
     # Shutdown
     await close_redis()

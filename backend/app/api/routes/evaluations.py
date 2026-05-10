@@ -1,11 +1,16 @@
+import asyncio
+import json
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.schemas.evaluation import EvaluationRunCreate, EvaluationRunOut, EvaluationRunSummary
-from app.services import evaluation_service
+from app.services import evaluation_service, event_bus
 
 router = APIRouter(prefix="/evaluations", tags=["evaluations"])
+settings = get_settings()
 
 
 @router.post(
@@ -38,6 +43,45 @@ async def list_evaluations(
     db: AsyncSession = Depends(get_db),
 ):
     return await evaluation_service.list_runs(db, limit=limit)
+
+
+@router.get(
+    "/stream",
+    summary="Server-Sent Events stream of real-time evaluation lifecycle events",
+)
+async def stream_eval_events():
+    """
+    SSE endpoint — each connected client gets every event published by the Kafka consumer.
+    Returns an empty keepalive stream when KAFKA_ENABLED=false so the frontend
+    can connect safely without crashing.
+    """
+    headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    }
+
+    if not settings.kafka_enabled:
+        async def _keepalive():
+            while True:
+                yield ": keepalive\n\n"
+                await asyncio.sleep(15)
+
+        return StreamingResponse(_keepalive(), media_type="text/event-stream", headers=headers)
+
+    q = event_bus.subscribe()
+
+    async def _generate():
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(q.get(), timeout=15.0)
+                    yield f"data: {json.dumps(event, default=str)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            event_bus.unsubscribe(q)
+
+    return StreamingResponse(_generate(), media_type="text/event-stream", headers=headers)
 
 
 @router.get(
