@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     kafka_bootstrap_servers: str = "localhost:9092"
     kafka_topic_eval_events: str = "eval-events"
     kafka_enabled: bool = False  # set True when Kafka is running
+    kafka_sasl_username: Optional[str] = None
+    kafka_sasl_password: Optional[str] = None
 
     # LLM API keys
     openai_api_key: Optional[str] = None

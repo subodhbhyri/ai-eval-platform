@@ -12,11 +12,24 @@ settings = get_settings()
 _producer = None
 
 
+def _build_kafka_cfg() -> dict:
+    """Base client config, with SASL_SSL added when credentials are present."""
+    cfg: dict = {"bootstrap.servers": settings.kafka_bootstrap_servers}
+    if settings.kafka_sasl_username:
+        cfg.update({
+            "security.protocol": "SASL_SSL",
+            "sasl.mechanism": "PLAIN",
+            "sasl.username": settings.kafka_sasl_username,
+            "sasl.password": settings.kafka_sasl_password,
+        })
+    return cfg
+
+
 def _get_producer():
     global _producer
     if _producer is None and settings.kafka_enabled:
         from confluent_kafka import Producer
-        _producer = Producer({"bootstrap.servers": settings.kafka_bootstrap_servers})
+        _producer = Producer(_build_kafka_cfg())
     return _producer
 
 

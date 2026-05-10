@@ -7,6 +7,7 @@ import asyncio
 import logging
 from app.core.config import get_settings
 from app.services import event_bus
+from app.services.kafka_producer import _build_kafka_cfg
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -17,14 +18,13 @@ HANDLED_TYPES = {"run.started", "run.completed", "run.failed", "model.scored"}
 async def _consume_loop() -> None:
     from confluent_kafka import Consumer, KafkaError
 
-    consumer = Consumer(
-        {
-            "bootstrap.servers": settings.kafka_bootstrap_servers,
-            "group.id": "eval-dashboard-sse",
-            "auto.offset.reset": "latest",
-            "enable.auto.commit": True,
-        }
-    )
+    cfg = _build_kafka_cfg()
+    cfg.update({
+        "group.id": "eval-dashboard-sse",
+        "auto.offset.reset": "latest",
+        "enable.auto.commit": True,
+    })
+    consumer = Consumer(cfg)
     consumer.subscribe([settings.kafka_topic_eval_events])
     logger.info("[Kafka] Consumer started — topic=%s", settings.kafka_topic_eval_events)
 
