@@ -293,7 +293,7 @@ export function SubmitEvalForm({ onSubmitted }: Props) {
         disabled={loading}
         className="w-full py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-bold text-sm tracking-wider transition-all duration-200 uppercase"
       >
-        {loading ? 'Running evaluation…' : 'Run Evaluation →'}
+        {loading ? 'Submitting…' : 'Run Evaluation →'}
       </button>
     </div>
   )

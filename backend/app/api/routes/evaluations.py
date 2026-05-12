@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.db.session import get_db
+from app.db.session import get_db, AsyncSessionLocal
 from app.schemas.evaluation import EvaluationRunCreate, EvaluationRunOut, EvaluationRunSummary
 from app.services import evaluation_service, event_bus
 
@@ -16,21 +16,30 @@ settings = get_settings()
 @router.post(
     "/",
     response_model=EvaluationRunOut,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
     summary="Submit a dataset and run multi-model evaluation",
 )
 async def create_evaluation(
     payload: EvaluationRunCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Triggers a synchronous evaluation run across all specified models.
-    For large datasets consider the async background variant below.
+    Creates the run record (status: pending) and returns immediately.
+    The evaluation executes as a background task; poll GET /{run_id} for progress.
     """
     try:
-        return await evaluation_service.create_and_run_evaluation(payload, db)
+        run = await evaluation_service.create_evaluation_run(payload, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    background_tasks.add_task(
+        evaluation_service.run_evaluation_background,
+        str(run.id),
+        payload,
+        AsyncSessionLocal,
+    )
+    return run
 
 
 @router.get(

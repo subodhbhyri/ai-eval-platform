@@ -59,7 +59,7 @@ export function useEvaluationRun(id: string | null) {
           clearInterval(id_interval)
         }
       }
-    }, 3000)
+    }, 2000)
     return () => clearInterval(id_interval)
   }, [fetch, id])
 
