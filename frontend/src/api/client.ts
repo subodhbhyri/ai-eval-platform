@@ -21,4 +21,9 @@ export const evaluationApi = {
     const { data } = await api.post('/evaluations/', payload)
     return data
   },
+
+  getResults: async (ids: string[]): Promise<Record<string, EvaluationRun>> => {
+    const results = await Promise.all(ids.map(id => evaluationApi.get(id)))
+    return Object.fromEntries(results.map(r => [r.id, r]))
+  },
 }

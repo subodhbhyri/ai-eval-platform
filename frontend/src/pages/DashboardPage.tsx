@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useEvaluationRuns } from '../hooks/useEvaluations'
 import { useEvalStream, type EvalEvent } from '../hooks/useEvalStream'
+import { evaluationApi } from '../api/client'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { SubmitEvalForm } from '../components/ui/SubmitEvalForm'
+import { TrendChart } from '../components/charts/TrendChart'
 import { formatDistanceToNow } from 'date-fns'
+import type { EvaluationRun, ModelResult } from '../types/evaluation'
 
 interface Props {
   onSelectRun: (id: string) => void
@@ -44,11 +47,35 @@ export function DashboardPage({ onSelectRun }: Props) {
   const events = useEvalStream()
   const feedRef = useRef<HTMLDivElement>(null)
 
+  // Full run details keyed by run ID, for the trend chart
+  const [runDetails, setRunDetails] = useState<Record<string, EvaluationRun>>({})
+  const [resultsLoading, setResultsLoading] = useState(false)
+  const fetchedIds = useRef(new Set<string>())
+
   const handleSubmitted = (id: string) => {
     setShowForm(false)
     refetch()
     onSelectRun(id)
   }
+
+  // Fetch full results for the last 10 completed runs, incrementally
+  useEffect(() => {
+    const completedIds = runs
+      .filter(r => r.status === 'completed')
+      .slice(0, 10)
+      .map(r => r.id)
+
+    const missing = completedIds.filter(id => !fetchedIds.current.has(id))
+    if (missing.length === 0) return
+
+    missing.forEach(id => fetchedIds.current.add(id))
+    setResultsLoading(true)
+    evaluationApi
+      .getResults(missing)
+      .then(newDetails => setRunDetails(prev => ({ ...prev, ...newDetails })))
+      .catch(() => {})
+      .finally(() => setResultsLoading(false))
+  }, [runs])
 
   // Auto-scroll live feed to latest event
   useEffect(() => {
@@ -59,6 +86,14 @@ export function DashboardPage({ onSelectRun }: Props) {
 
   const runNameById = Object.fromEntries(runs.map((r) => [r.id, r.name]))
   const visibleEvents = events.slice(-10)
+
+  // Derive data for the trend chart
+  const completedRuns = runs.filter(r => r.status === 'completed').slice(0, 10)
+  const trendResults: Record<string, ModelResult[]> = {}
+  completedRuns.forEach(run => {
+    if (runDetails[run.id]) trendResults[run.id] = runDetails[run.id].results
+  })
+  const runsWithResults = completedRuns.filter(r => Boolean(trendResults[r.id]))
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,6 +124,22 @@ export function DashboardPage({ onSelectRun }: Props) {
           Cannot reach backend: {error}
         </div>
       )}
+
+      {/* Trend chart */}
+      <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/80">
+          <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">
+            Composite score over time
+          </span>
+        </div>
+        <div className="p-4">
+          {resultsLoading && runsWithResults.length === 0 ? (
+            <div className="h-48 rounded-lg bg-slate-800/50 animate-pulse" />
+          ) : (
+            <TrendChart runs={runsWithResults} results={trendResults} />
+          )}
+        </div>
+      </div>
 
       {/* Runs table */}
       <div className="rounded-xl border border-slate-800 overflow-hidden">
