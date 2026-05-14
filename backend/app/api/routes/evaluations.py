@@ -1,6 +1,6 @@
 import asyncio
 import json
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Response, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -100,9 +100,11 @@ async def stream_eval_events():
 )
 async def get_evaluation(
     run_id: str,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     run = await evaluation_service.get_run(run_id, db)
     if not run:
         raise HTTPException(status_code=404, detail="Evaluation run not found")
+    response.headers["Cache-Control"] = "no-cache"
     return run

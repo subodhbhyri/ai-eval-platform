@@ -131,9 +131,10 @@ async def run_evaluation_background(
 
             finally:
                 await db.commit()
-                await cache_delete(_runs_list_cache_key())
 
-            # Reload with results and cache final state (works for both completed and failed)
+            # Bust both stale caches, then repopulate from the freshly committed DB state
+            await cache_delete(_run_cache_key(run_id))
+            await cache_delete(_runs_list_cache_key())
             run = await _get_run_with_results(db, run_uuid)
             out = _serialize_run(run)
             await cache_set(_run_cache_key(run_id), out.model_dump())
