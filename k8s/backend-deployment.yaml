@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-eval-backend
+  namespace: ai-eval
+  labels:
+    app: ai-eval-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-eval-backend
+  template:
+    metadata:
+      labels:
+        app: ai-eval-backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/subodhbhyri/ai-eval-platform/backend:latest
+          ports:
+            - containerPort: 8000
+          env:
+            # ── Literal values ─────────────────────────────────────────────
+            - name: KAFKA_ENABLED
+              value: "true"
+            - name: DEBUG
+              value: "false"
+            - name: MAX_CONCURRENT_EVALUATIONS
+              value: "3"
+            # ── From secret ────────────────────────────────────────────────
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ai-eval-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ai-eval-secrets
+                  key: redis-url
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-eval-secrets
+                  key: anthropic-api-key
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-eval-secrets
+                  key: openai-api-key
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-eval-secrets
+                  key: google-api-key
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: ai-eval-secrets
+                  key: kafka-bootstrap-servers
+            - name: KAFKA_SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ai-eval-secrets
+                  key: kafka-sasl-username
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ai-eval-secrets
+                  key: kafka-sasl-password
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
