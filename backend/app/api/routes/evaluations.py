@@ -1,6 +1,6 @@
 import asyncio
 import json
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,6 @@ settings = get_settings()
 )
 async def create_evaluation(
     payload: EvaluationRunCreate,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -33,11 +32,12 @@ async def create_evaluation(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    background_tasks.add_task(
-        evaluation_service.run_evaluation_background,
-        str(run.id),
-        payload,
-        AsyncSessionLocal,
+    asyncio.create_task(
+        evaluation_service.run_evaluation_background(
+            str(run.id),
+            payload,
+            AsyncSessionLocal,
+        )
     )
     return run
 
